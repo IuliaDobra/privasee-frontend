@@ -51,8 +51,27 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
     const [companyOptions, setCompanyOptions] = useState<
         { company_id: string; company_name: string }[]
     >([]);
+
+    const [propertyFields, setPropertyFields] = useState<Record<string, string>>({});
     const [userOptions, setUserOptions] = useState<string[]>([]);
     const [isEditing, setIsEditing] = useState(false);
+    const [isViewing, setIsViewing] = useState(false);
+
+    const parseProperties = (properties: string) => {
+        return properties
+            .split(",")
+            .map((pair) => pair.split(":"))
+            .reduce((acc, [key, value]) => {
+                acc[key.trim()] = value.trim();
+                return acc;
+            }, {} as Record<string, string>);
+    };
+
+    const serializeProperties = (properties: Record<string, string>) => {
+        return Object.entries(properties)
+            .map(([key, value]) => `${key}:${value}`)
+            .join(", ");
+    };
 
     useEffect(() => {
         const fetchDropdownData = async () => {
@@ -71,6 +90,10 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
         if (initialData && Object.keys(initialData).length > 0) {
             setFormData(initialData);
             setIsEditing(isEdit);
+            setIsViewing(isView);
+            if (initialData.properties) {
+                setPropertyFields(parseProperties(initialData.properties));
+            }
         } else {
             setFormData({
                 id: "",
@@ -86,9 +109,17 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                 created_at: "",
                 updated_at: "",
             });
+            setPropertyFields({});
             setIsEditing(false); // Ensure it's not in edit mode
+            setIsViewing(false); //ensure it's not in view mode
         }
-    }, [initialData, isEdit]);
+    }, [initialData, isEdit, isView]);
+
+    useEffect(() => {
+        if (initialData?.properties) {
+            setPropertyFields(parseProperties(initialData.properties));
+        }
+    }, [initialData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
         const { name, value } = e.target;
@@ -107,8 +138,15 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
     };
 
     const handleSave = () => {
+// Remove empty key-value pairs
+        const filteredProperties = Object.fromEntries(
+            Object.entries(propertyFields).filter(([key, value]) => key.trim() && value.trim())
+        );
+
+        const serializedProperties = serializeProperties(filteredProperties);
         const updatedQuestion = {
             ...formData,
+            properties: serializedProperties,
             updated_at: new Date().toISOString(),
             created_at: formData.created_at || new Date().toISOString(),
         };
@@ -116,12 +154,16 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
         onClose();
     };
 
-    const toggleEditMode = () => setIsEditing(true);
+    const toggleEditMode = () => {
+        setIsEditing(true);
+        setIsViewing(false);
+
+    }
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth>
             <DialogTitle>
-                {isView && !isEditing
+                {isViewing && !isEditing
                     ? "View Question"
                     : isEditing
                         ? "Edit Question"
@@ -136,7 +178,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                     margin="dense"
                     value={formData.question}
                     onChange={handleInputChange}
-                    disabled={isView && !isEditing}
+                    disabled={isViewing && !isEditing}
                 />
                 <TextField
                     label="Question Description"
@@ -145,7 +187,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                     margin="dense"
                     value={formData.question_description}
                     onChange={handleInputChange}
-                    disabled={isView && !isEditing}
+                    disabled={isViewing && !isEditing}
                 />
                 <TextField
                     label="Answer"
@@ -154,11 +196,11 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                     margin="dense"
                     value={formData.answer}
                     onChange={handleInputChange}
-                    disabled={isView && !isEditing}
+                    disabled={isViewing && !isEditing}
                 />
 
                 {/* Company Name */}
-                <FormControl fullWidth margin="dense" disabled={isView && !isEditing}>
+                <FormControl fullWidth margin="dense" disabled={isViewing && !isEditing}>
                     <InputLabel>Company Name</InputLabel>
                     <Select
                         value={formData.company_name}
@@ -175,7 +217,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                 </FormControl>
 
                 {/* Assigned To */}
-                <FormControl fullWidth margin="dense" disabled={isView && !isEditing}>
+                <FormControl fullWidth margin="dense" disabled={isViewing && !isEditing}>
                     <InputLabel>Assigned To</InputLabel>
                     <Select
                         value={formData.assigned_to}
@@ -191,8 +233,64 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                     </Select>
                 </FormControl>
 
+                <Box>
+                    {Object.entries(propertyFields).map(([key, value], index) => (
+                        <Box key={index} display="flex" gap={2} alignItems="center" justifyContent="space-evenly">
+                            <TextField
+                                label="Key"
+                                value={key}
+                                fullWidth
+                                onChange={(e) => {
+                                    const newFields = { ...propertyFields };
+                                    const newKey = e.target.value;
+                                    delete newFields[key];
+                                    newFields[newKey] = value;
+                                    setPropertyFields(newFields);
+                                }}
+                                disabled={isViewing && !isEditing}
+                                margin="dense"
+                            />
+                            <TextField
+                                label="Value"
+                                value={value}
+                                fullWidth
+                                onChange={(e) => {
+                                    const newFields = { ...propertyFields };
+                                    newFields[key] = e.target.value;
+                                    setPropertyFields(newFields);
+                                }}
+                                disabled={isViewing && !isEditing}
+                                margin="dense"
+                            />
+                            {isEditing && (
+                                <Button
+                                    color="error"
+                                    onClick={() => {
+                                        const newFields = { ...propertyFields };
+                                        delete newFields[key];
+                                        setPropertyFields(newFields);
+                                    }}
+                                    disabled={isViewing && !isEditing}
+                                >
+                                    Remove
+                                </Button>
+                            )}
+                        </Box>
+                    ))}
+
+                    {/* Display "Add Property" button only if appropriate */}
+                    {!isViewing && (isEditing || Object.keys(propertyFields).length === 0) && (
+                        <Button
+                            variant="outlined"
+                            onClick={() => setPropertyFields({ ...propertyFields, "": "" })}
+                        >
+                            Add Property
+                        </Button>
+                    )}
+                </Box>
+
                 {/* Created/Updated Fields - Only Render in Edit or View */}
-                {(isEdit || isView) && formData.id && (
+                {(isEditing || isViewing) && formData.id && (
                     <>
                         <Box display="flex" gap={2} marginTop={2}>
                             <TextField
@@ -236,7 +334,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
             </DialogContent>
 
             <DialogActions>
-                {isView && !isEditing ? (
+                {isViewing && !isEditing ? (
                     <Button onClick={toggleEditMode} color="primary" variant="contained">
                         Switch to Edit
                     </Button>

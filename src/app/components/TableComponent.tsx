@@ -226,6 +226,7 @@ const TableComponent: React.FC = () => {
                                         onClick={() => {
                                             setDialogData(row);
                                             setIsView(true);
+                                            setIsEdit(false);
                                             setDialogOpen(true);
                                         }}
                                     >
@@ -236,6 +237,7 @@ const TableComponent: React.FC = () => {
                                         onClick={() => {
                                             setDialogData(row);
                                             setIsEdit(true);
+                                            setIsView(false);
                                             setDialogOpen(true);
                                         }}
                                     >
