@@ -10,11 +10,12 @@ import {
     Select,
     InputLabel,
     FormControl,
-    Box,
+    Box, IconButton,
 } from "@mui/material";
 import { fetchCompanies } from "../services/companyService";
 import { fetchUsers } from "../services/userService";
-import { formatDate } from "../utils/dateUtils"; // For date formatting
+import { formatDate } from "../utils/dateUtils";
+import {CloseIcon} from "next/dist/client/components/react-dev-overlay/internal/icons/CloseIcon"; // For date formatting
 
 interface QuestionDialogProps {
     open: boolean;
@@ -162,12 +163,16 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth>
-            <DialogTitle>
+            <DialogTitle display="flex" justifyContent="space-between" alignItems="center" gap={2} sx={{ padding: "20px" }}>
                 {isViewing && !isEditing
                     ? "View Question"
                     : isEditing
                         ? "Edit Question"
                         : "Create New Question"}
+
+                <IconButton onClick={onClose} size="small">
+                    <CloseIcon />
+                </IconButton>
             </DialogTitle>
             <DialogContent>
                 {/* Question and Description */}
@@ -333,7 +338,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                 )}
             </DialogContent>
 
-            <DialogActions>
+            <DialogActions sx={{paddingBottom: "20px"}}>
                 {isViewing && !isEditing ? (
                     <Button onClick={toggleEditMode} color="primary" variant="contained">
                         Switch to Edit
@@ -343,7 +348,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                         Save
                     </Button>
                 )}
-                <Button onClick={onClose} color="secondary">
+                <Button onClick={onClose} color="primary" variant="outlined" sx={{ marginRight: 2 }}>
                     Close
                 </Button>
             </DialogActions>

@@ -5,8 +5,9 @@ import {
     DialogContent,
     DialogActions,
     Button,
-    Typography,
+    Typography, IconButton,
 } from "@mui/material";
+import {CloseIcon} from "next/dist/client/components/react-dev-overlay/internal/icons/CloseIcon";
 
 interface ConfirmDialogProps {
     open: boolean;
@@ -25,12 +26,17 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                                                      }) => {
     return (
         <Dialog open={open} onClose={onClose}>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle display="flex" justifyContent="space-between" alignItems="center" gap={2} sx={{ padding: "20px" }}>
+                {title}
+                <IconButton onClick={onClose} size="small">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
             <DialogContent>
                 <Typography>{description}</Typography>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} color="secondary" variant="outlined">
+            <DialogActions sx={{paddingBottom: "20px", paddingRight: "20px"}}>
+                <Button onClick={onClose} color="primary" variant="outlined">
                     No
                 </Button>
                 <Button onClick={onConfirm} color="error" variant="contained">

@@ -152,10 +152,12 @@ const TableComponent: React.FC = () => {
                 <Divider orientation="vertical" variant="middle" flexItem/>
 
                 {/* Assigned User Filter */}
-                <FormControl style={{ minWidth: 200 }}>
-                    <InputLabel>Filter by Assigned User</InputLabel>
+                <FormControl style={{ minWidth: 250 }}>
+                    <InputLabel id="users-select">Filter by Assigned User</InputLabel>
                     <Select
+                        labelId="users-select"
                         value={assignedTo}
+                        label="Filter by Assigned User"
                         onChange={(e) => setAssignedTo(e.target.value)}
                     >
                         {users.map((user) => (
