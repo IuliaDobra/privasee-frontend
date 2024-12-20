@@ -4,23 +4,21 @@ import {getCurrentUser} from "./userService";
 
 const API_URL = "http://localhost:3001/api/questions";
 
-export const fetchQuestions = async () => {
+export const fetchQuestions = async (filters = {}) => {
     try {
-        console.log("Requesting all data");
-        const response = await axios.get(API_URL); // No params for pagination
+        console.log("Requesting filtered data with filters:", filters);
+        const response = await axios.get(API_URL, { params: filters }); // Add filters as query params
         console.log("Data received:", response.data);
         return response.data;
     } catch (error) {
-        // @ts-ignore
         console.error("Error fetching questions:", error.message);
-        // @ts-ignore
         if (error.response) {
-            // @ts-ignore
             console.error("Server Response:", error.response.data);
         }
         throw error;
     }
 };
+
 
 export const deleteQuestion = async (id: string) => {
     return await axios.delete(`${API_URL}/${id}`);

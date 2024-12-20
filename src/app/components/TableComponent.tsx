@@ -10,9 +10,18 @@ import {
     Checkbox,
     IconButton,
     Box,
-    Button, TablePagination, FormControl, InputLabel, Select, MenuItem, CircularProgress, Typography,
+    Button,
+    TablePagination,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    CircularProgress,
+    Typography,
+    TextField,
+    Divider,
 } from "@mui/material";
-import { Visibility, Edit, Delete } from "@mui/icons-material";
+import {Visibility, Edit, Delete, Add} from "@mui/icons-material";
 import QuestionDialog from "./QuestionDialog";
 import ConfirmDialog from "./ConfirmDialog";
 import { formatDate } from "../utils/dateUtils";
@@ -25,11 +34,19 @@ const TableComponent: React.FC = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    const [selectedRows, setSelectedRows] = useState<string[]>([]);
-    const [assignee, setAssignee] = useState("");
+    // State for filters
+    const [assignedTo, setAssignedTo] = useState("");
+    const [propertyKey, setPropertyKey] = useState("");
+    const [propertyValue, setPropertyValue] = useState("");
+
+    // Data state
     const [data, setData] = useState<QuestionData[]>([]);
     const [users, setUsers] = useState<string[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+
+    // Bulk reassign
+    const [selectedRows, setSelectedRows] = useState<string[]>([]);
+    const [assignee, setAssignee] = useState("");
 
     // States for dialogs
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -44,17 +61,21 @@ const TableComponent: React.FC = () => {
         setLoading(true);
         try {
             const [questionsResponse, usersResponse] = await Promise.all([
-                fetchQuestions(),
+                fetchQuestions({ assignedTo, propertyKey, propertyValue }), // Pass filters
                 fetchUsers(),
             ]);
             setData(questionsResponse.records);
-            setUsers(usersResponse); // Populate users
+            setUsers(usersResponse);
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadData();
+    }, [assignedTo, propertyKey, propertyValue]);
 
     useEffect(() => {
         loadData();
@@ -112,26 +133,9 @@ const TableComponent: React.FC = () => {
         }
     };
 
-
-    if (loading) {
-        return (
-            <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                height="100vh" // Full-screen loader
-            >
-                <CircularProgress />
-                <Typography variant="h6" marginLeft={2}>
-                    Loading data...
-                </Typography>
-            </Box>
-        );
-    }
-
     return (
         <Box sx={{ overflow: "auto", padding: "20px", backgroundColor: "#fff"}}>
-            <Box mb={2} display="flex" flexDirection="row" justifyContent="space-between">
+            <Box mb={2} display="flex" flexDirection="row" gap={2} >
                 <Button
                     variant="contained"
                     color="primary"
@@ -142,11 +146,53 @@ const TableComponent: React.FC = () => {
                         setDialogOpen(true);
                     }}
                 >
-                    Create New Question
+                    <Add/> Create New Question
+                </Button>
+
+                <Divider orientation="vertical" variant="middle" flexItem/>
+
+                {/* Assigned User Filter */}
+                <FormControl style={{ minWidth: 200 }}>
+                    <InputLabel>Filter by Assigned User</InputLabel>
+                    <Select
+                        value={assignedTo}
+                        onChange={(e) => setAssignedTo(e.target.value)}
+                    >
+                        {users.map((user) => (
+                            <MenuItem key={user} value={user}>
+                                {user}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+
+                {/* Custom Properties Filter */}
+                <TextField
+                    label="Property Key"
+                    value={propertyKey}
+                    onChange={(e) => setPropertyKey(e.target.value)}
+                />
+                <TextField
+                    label="Property Value"
+                    value={propertyValue}
+                    onChange={(e) => setPropertyValue(e.target.value)}
+                />
+
+                {/* Reset Filters */}
+                <Button
+                    variant="outlined"
+                    onClick={() => {
+                        setAssignedTo("");
+                        setPropertyKey("");
+                        setPropertyValue("");
+                    }}
+                >
+                    Reset Filters
                 </Button>
 
                 {selectedRows.length > 0 && (
                     <Box display="flex" gap={2}>
+                        <Divider orientation="vertical" variant={"middle"} flexItem/>
                         <FormControl>
                             <InputLabel>Reassign To</InputLabel>
                             <Select
@@ -201,7 +247,17 @@ const TableComponent: React.FC = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {paginatedData.map((row) => (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={13} align="center">
+                                    <CircularProgress />
+                                    <Typography variant="h6" marginLeft={2}>
+                                        Loading data...
+                                    </Typography>
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            paginatedData.map((row) => (
                             <TableRow key={row.id}>
                                 <TableCell padding="checkbox">
                                     <Checkbox
@@ -254,7 +310,8 @@ const TableComponent: React.FC = () => {
                                     </IconButton>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        ))
+                        )}
                     </TableBody>
                 </Table>
             </TableContainer>
