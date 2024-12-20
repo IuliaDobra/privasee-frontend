@@ -161,6 +161,34 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
 
     }
 
+    const handleClose = () => {
+        if (!isViewing) {
+            if (isEditing) {
+                // Reset form data and properties to initial values in edit mode
+                setFormData(initialData);
+                setPropertyFields(parseProperties(initialData?.properties || ""));
+            } else {
+                // Reset to default values on create
+                setFormData({
+                    id: "",
+                    question: "",
+                    question_description: "",
+                    answer: "",
+                    properties: "",
+                    assigned_to: "",
+                    company_name: "",
+                    company_id: "",
+                    updated_by: "",
+                    created_by: "",
+                    created_at: "",
+                    updated_at: "",
+                });
+                setPropertyFields({});
+            }
+        }
+        onClose();
+    };
+
     return (
         <Dialog open={open} onClose={onClose} fullWidth>
             <DialogTitle display="flex" justifyContent="space-between" alignItems="center" gap={2} sx={{ padding: "20px" }}>
@@ -170,7 +198,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                         ? "Edit Question"
                         : "Create New Question"}
 
-                <IconButton onClick={onClose} size="small">
+                <IconButton onClick={handleClose} size="small">
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
@@ -267,7 +295,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                                 disabled={isViewing && !isEditing}
                                 margin="dense"
                             />
-                            {isEditing && (
+                            {!isViewing && (Object.keys(propertyFields).length > 0) && (
                                 <Button
                                     color="error"
                                     onClick={() => {
@@ -284,7 +312,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                     ))}
 
                     {/* Display "Add Property" button only if appropriate */}
-                    {!isViewing && (isEditing || Object.keys(propertyFields).length === 0) && (
+                    {!isViewing && (
                         <Button
                             variant="outlined"
                             onClick={() => setPropertyFields({ ...propertyFields, "": "" })}
@@ -348,7 +376,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
                         Save
                     </Button>
                 )}
-                <Button onClick={onClose} color="primary" variant="outlined" sx={{ marginRight: 2 }}>
+                <Button onClick={handleClose} color="primary" variant="outlined" sx={{ marginRight: 2 }}>
                     Close
                 </Button>
             </DialogActions>
