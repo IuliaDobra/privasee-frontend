@@ -25,7 +25,7 @@ import {Visibility, Edit, Delete, Add} from "@mui/icons-material";
 import QuestionDialog from "./QuestionDialog";
 import ConfirmDialog from "./ConfirmDialog";
 import { formatDate } from "../utils/dateUtils";
-import { bulkReassignQuestions, deleteQuestion, fetchQuestions, saveQuestion } from '../services/questionService'
+import { bulkReassignQuestions, deleteQuestion, fetchQuestions, saveQuestion, searchQuestions, searchProperties } from '../services/questionService'
 import { fetchUsers } from '../services/userService'
 import {QuestionData} from "../types/DataTypes";
 
@@ -43,6 +43,7 @@ const TableComponent: React.FC = () => {
     const [data, setData] = useState<QuestionData[]>([]);
     const [users, setUsers] = useState<string[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Bulk reassign
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -56,16 +57,24 @@ const TableComponent: React.FC = () => {
     const [isView, setIsView] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
 
-
+    // Load data based on filters or search
     const loadData = async () => {
         setLoading(true);
         try {
-            const [questionsResponse, usersResponse] = await Promise.all([
-                fetchQuestions({ assignedTo, propertyKey, propertyValue }), // Pass filters
-                fetchUsers(),
-            ]);
-            setData(questionsResponse.records);
-            setUsers(usersResponse);
+            if (searchTerm) {
+                const response = await searchQuestions(searchTerm);
+                setData(response.records);
+            } else if (propertyKey && propertyValue) {
+                const response = await searchProperties(propertyKey, propertyValue);
+                setData(response.records);
+            } else {
+                const [questionsResponse, usersResponse] = await Promise.all([
+                    fetchQuestions({ assignedTo }),
+                    fetchUsers(),
+                ]);
+                setData(questionsResponse.records);
+                setUsers(usersResponse);
+            }
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {
@@ -73,13 +82,25 @@ const TableComponent: React.FC = () => {
         }
     };
 
+    // Debounced Search
     useEffect(() => {
-        loadData();
-    }, [assignedTo, propertyKey, propertyValue]);
+        const debounceTimeout = setTimeout(() => {
+            loadData();
+        }, 1000);
+        return () => clearTimeout(debounceTimeout);
+    }, [searchTerm, propertyKey, propertyValue]);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [assignedTo]);
+
+    const resetFilters = () => {
+        setAssignedTo("");
+        setPropertyKey("");
+        setPropertyValue("");
+        setSearchTerm("");
+        loadData();
+    };
 
     // Handle row selection
     const handleRowSelect = (id: string) => {
@@ -133,8 +154,61 @@ const TableComponent: React.FC = () => {
         }
     };
 
+    const loadQuestionAnswerSearch = async () => {
+        setLoading(true);
+        try {
+            const response = await searchQuestions(searchTerm);
+            setData(response.records);
+        } catch (error) {
+            console.error("Failed to load data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadPropertySearch = async () => {
+        setLoading(true);
+        try {
+            const response = await searchProperties(propertyKey, propertyValue);
+            setData(response.records);
+        } catch (error) {
+            console.error("Failed to load data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const debounceTimeout = setTimeout(() => {
+            if (searchTerm.trim() === "") {
+                loadData(); // Retrieve all records if search is empty
+            } else {
+                loadQuestionAnswerSearch();
+            }
+        }, 1000);
+        return () => clearTimeout(debounceTimeout);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        if (propertyKey && propertyValue) {
+            const debounceTimeout = setTimeout(() => {
+                loadPropertySearch();
+            }, 1000);
+            return () => clearTimeout(debounceTimeout);
+        }
+    }, [propertyKey, propertyValue]);
+
     return (
         <Box sx={{ overflow: "auto", padding: "20px", backgroundColor: "#fff"}}>
+            <Box display="flex" gap={2} alignItems="center" mb={2}>
+                <TextField
+                    label="Search Questions/Answers"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    fullWidth
+                />
+            </Box>
+
             <Box mb={2} display="flex" flexDirection="row" gap={2} >
                 <Button
                     variant="contained"
@@ -183,11 +257,7 @@ const TableComponent: React.FC = () => {
                 {/* Reset Filters */}
                 <Button
                     variant="outlined"
-                    onClick={() => {
-                        setAssignedTo("");
-                        setPropertyKey("");
-                        setPropertyValue("");
-                    }}
+                    onClick={resetFilters}
                 >
                     Reset Filters
                 </Button>

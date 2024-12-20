@@ -56,5 +56,38 @@ export const bulkReassignQuestions = async (ids: string[], assigned_to: string) 
     });
 };
 
+export const searchQuestions = async (searchTerm) => {
+    try {
+        console.log(`Fuzzy searching questions/answers with term: ${JSON.stringify(searchTerm)}`);
+        const response = await axios.get(`${API_URL}/search`, {
+            params: { searchTerm },
+        });
+        console.log("Search results received:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error("Error performing question search:", error.message);
+        if (error.response) {
+            console.error("Server Response:", error.response.data);
+        }
+        throw error;
+    }
+};
 
+// Fuzzy search on properties column
+export const searchProperties = async (propertyKey, propertyValue) => {
+    try {
+        console.log(`Fuzzy searching properties with key: ${propertyKey}, value: ${propertyValue}`);
+        const response = await axios.get(`${API_URL}/search-properties`, {
+            params: { propertyKey, propertyValue },
+        });
+        console.log("Property search results received:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error("Error performing property search:", error.message);
+        if (error.response) {
+            console.error("Server Response:", error.response.data);
+        }
+        throw error;
+    }
+};
 
